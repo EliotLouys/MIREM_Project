@@ -93,9 +93,19 @@ end
 
 %%  
 data_REM = data_EOG_bi.trial{1}(1, find(vectorREM == 1));
-
+times    = data_EOG_bi.time{1}(1, find(vectorREM == 1));
 
 % step1: define amplitude threshold
+abs_signal=abs(data_REM);
+
+pks=findpeaks(abs_signal);
+pks(pks>500)=[];
+
+GMModel=fitgmdist(transpose(pks),2);
+threshold=max(GMModel.mu);
+
+
+
 
 % step2: zero-crossing
 
