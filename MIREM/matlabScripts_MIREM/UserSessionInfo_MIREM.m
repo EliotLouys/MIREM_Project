@@ -12,6 +12,9 @@ switch userName
     case 'jb2'
         rootDirProject   = 'D:\JBE_local\MIREM\';
         rootDirUtilities = 'D:\JBE_local\utilities\';
+    case 'el1'
+        rootDirProject   ='C:\Users\eliot\OneDrive\Documents\Stage\MIREM_Project\MIREM\';
+        rootDirUtilities ='C:\Users\eliot\OneDrive\Documents\Stage\MIREM_Project\utilities\'
 end
 userInfo = extractUserInfo(rootDirProject, rootDirUtilities);
 
