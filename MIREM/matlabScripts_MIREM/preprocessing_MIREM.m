@@ -85,29 +85,53 @@ numEpochs               = height(score);
 vectorREM = zeros(1, numSamples);
 for ep=1:numEpochs
     if isequal(score.stage{ep}, 'REM')
-        idxStart_s = score.start(ep) * fsample;
-        idxEnd_s   = score.end(ep) * fsample;
+        idxStart_s                     = score.start(ep) * fsample;
+        idxEnd_s                       = score.end(ep) * fsample;
         vectorREM(idxStart_s:idxEnd_s) = 1;
     end
 end
 
 %%  
-data_REM = data_EOG_bi.trial{1}(1, find(vectorREM == 1));
-times    = data_EOG_bi.time{1}(1, find(vectorREM == 1));
+data_REM    = data_EOG_bi.trial{1}(1, find(vectorREM == 1));
+times       = data_EOG_bi.time{1}(1, find(vectorREM == 1));
 
-% step1: define amplitude threshold
-abs_signal=abs(data_REM);
-
-pks=findpeaks(abs_signal);
-pks(pks>500)=[];
-
-GMModel=fitgmdist(transpose(pks),2);
-threshold=max(GMModel.mu);
-
+% Step 1: Define amplitude threshold using the Gaussian Mixture Model to
+% fit the peaks of the signal.
+abs_signal  = abs(data_REM);
+pks         = findpeaks(abs_signal);
+pks(pks>500)= [];
+GMModel     = fitgmdist(transpose(pks),2);
+threshold_G = max(GMModel.mu);
 
 
+% Step 2: Define zero crossing: zX see https://www.mathworks.com/matlabcentral/answers/267222-easy-way-of-finding-zero-crossing-of-a-function
 
-% step2: zero-crossing
+zci         = @(v) find(v(:).*circshift(v(:), [-1 0]) <= 0); 
+data_thresh = data_REM - threshold_G;
+zX          = zci(data_thresh);
+
+potential_EM=[];
+for i=1:length(zX)-1
+    crit     = zX(i+1)-zX(i);
+    if crit<=4000
+        potential_EM=[potential_EM {zX(i); zX(i+1)}];
+    end
+end
+
+
+
+
+
+% Optionnal plotting of the points where the curve crosses the threshold
+
+% amplitudes  = data_REM(zX);
+% figure(1)
+% plot(times,data_REM)
+% hold on
+% scatter(indexesp,amplitudes)
+% hold off
+
+
 
 % step3: 
 
