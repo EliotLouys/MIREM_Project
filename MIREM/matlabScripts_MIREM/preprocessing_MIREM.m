@@ -95,6 +95,8 @@ end
 data_REM    = data_EOG_bi.trial{1}(1, find(vectorREM == 1));
 times       = data_EOG_bi.time{1}(1, find(vectorREM == 1));
 
+
+%%
 % Step 1: Define amplitude threshold using the Gaussian Mixture Model to
 % fit the peaks of the signal.
 abs_signal  = abs(data_REM);
@@ -104,23 +106,38 @@ GMModel     = fitgmdist(transpose(pks),2);
 threshold_G = max(GMModel.mu);
 
 
+%%
 % Step 2: Define zero crossing: zX see https://www.mathworks.com/matlabcentral/answers/267222-easy-way-of-finding-zero-crossing-of-a-function
 
 zci         = @(v) find(v(:).*circshift(v(:), [-1 0]) <= 0); 
 data_thresh = data_REM - threshold_G;
 zX          = zci(data_thresh);
 
+
+
 potential_EM=[];
 for i=1:length(zX)-1
     crit     = zX(i+1)-zX(i);
     if crit<=4000
-        potential_EM=[potential_EM {zX(i); zX(i+1)}];
+        potential_EM = [potential_EM [zX(i); zX(i+1)]];
     end
+
 end
 
 
 
 
+
+% optionnal plotting of the candidates sections for EM events
+% t1        = [ times(potential_EM(1,:));times(potential_EM(2,:))];
+% ampl(1,:) = data_REM(potential_EM(1,:)) ;
+% ampl(2,:) = data_REM(potential_EM(1,:)) ;
+% hold on
+% for i=1:length(potential_EM(1,:))
+%     plot([t1(1,i) t1(2,i)], [ampl(1,i) ampl(2,i)] ,'r' )
+% end
+% plot (times,data_REM,'b')
+% hold off
 
 % Optionnal plotting of the points where the curve crosses the threshold
 
@@ -132,7 +149,12 @@ end
 % hold off
 
 
+%%
+% Step3: Define and use the other criterias on the candidates 
 
-% step3: 
+
+
+
+
 
 
