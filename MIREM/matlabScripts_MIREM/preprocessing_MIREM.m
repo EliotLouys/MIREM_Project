@@ -32,7 +32,7 @@ data        = ft_preprocessing(cfg);
 
 % keep only EOG
 cfg         = [];
-cfg.channel = {'EOG 1'; 'EOG 2'};
+cfg.channel = {'eog'};
 data_EOG    = ft_selectdata(cfg, data);
 
 % high-pass filter
@@ -117,12 +117,13 @@ zX          = zci(data_thresh);
 
 potential_EM=[];
 for i=1:length(zX)-1
-    crit     = zX(i+1)-zX(i);
+    crit     = times(zX(i+1))-times(zX(i));
     if crit<=4000
-        potential_EM = [potential_EM [zX(i); zX(i+1)]];
+        potential_EM = [potential_EM [times(zX(i)); times(zX(i+1))]];
     end
 
 end
+
 
 
 
