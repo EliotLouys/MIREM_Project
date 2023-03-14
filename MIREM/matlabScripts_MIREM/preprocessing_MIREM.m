@@ -115,46 +115,43 @@ zX          = zci(data_thresh);
 
 
 
-potential_EM=[];
+candidates=[];
 for i=1:length(zX)-1
     crit     = times(zX(i+1))-times(zX(i));
-    if crit<=4000
-        potential_EM = [potential_EM [times(zX(i)); times(zX(i+1))]];
+    if crit <=4000
+        candidates = [candidates [times(zX(i)); times(zX(i+1))]];  %stores the indexes of the data_REM vector where zero crossings happen 2 by 2
+
     end
 
 end
 
 
-
-
-
-
-% optionnal plotting of the candidates sections for EM events
-% t1        = [ times(potential_EM(1,:));times(potential_EM(2,:))];
-% ampl(1,:) = data_REM(potential_EM(1,:)) ;
-% ampl(2,:) = data_REM(potential_EM(1,:)) ;
-% hold on
-% for i=1:length(potential_EM(1,:))
-%     plot([t1(1,i) t1(2,i)], [ampl(1,i) ampl(2,i)] ,'r' )
-% end
-% plot (times,data_REM,'b')
-% hold off
-
-% Optionnal plotting of the points where the curve crosses the threshold
-
-% amplitudes  = data_REM(zX);
-% figure(1)
-% plot(times,data_REM)
-% hold on
-% scatter(indexesp,amplitudes)
-% hold off
-
-
 %%
 % Step3: Define and use the other criterias on the candidates 
 
+candidates2=[];
+for i=1:length(candidates)
+    slope_dur =  cast( (candidates(2,i) - candidates(1,i))*100 , 'uint32');
+    ind       =  cast(  candidates(1,i) , 'uint32' );
+    crit      = (data_REM(  ind +slope_dur  )  -  data_REM( ind ))/ cast( slope_dur,'double');
+    if crit<0.001
+        candidates2 = [candidates2 , candidates(:,i)];
+    end
+end
 
 
+total_time=0;
+for i=1:length(candidates2)
+    total_time=total_time + ( candidates2(2,i) - candidates2(1,i) );
+end
+total_time=total_time/3600;
+
+
+
+
+
+time_REM= length(data_REM)/(1000*60*60);
+proportion= total_time*100/time_REM;
 
 
 
