@@ -1,4 +1,4 @@
-function preprocessing_MIREM(userName, nameEEG, nameScore)
+function [proportion]=preprocessing_MIREM(userName, nameEEG, nameScore)
 
 % Pipeline to preprocess EEG data in MIREM project
 %   use as preprocessing_MIREM('jb1', '105_NN_Sommeil.edf', '105_NN_Sommeil_scores.csv')
@@ -62,7 +62,7 @@ data_EOG_bi     = ft_preprocessing(cfg, data_EOG);
 
 % keep only final bipolar
 cfg               = [];
-cfg.channel       = {'EOG 1'};
+cfg.channel       = data_EOG.label{1};
 data_EOG_bi       = ft_selectdata(cfg, data_EOG_bi);
 data_EOG_bi.label = 'EOG_bi';
 
@@ -110,16 +110,16 @@ threshold_G = max(GMModel.mu);
 % Step 2: Define zero crossing: zX see https://www.mathworks.com/matlabcentral/answers/267222-easy-way-of-finding-zero-crossing-of-a-function
 
 zci         = @(v) find(v(:).*circshift(v(:), [-1 0]) <= 0); 
-data_thresh = data_REM - threshold_G;
-zX          = zci(data_thresh);
+data_thresh = data_REM - threshold_G;                           
+zX          = zci(data_thresh);                                 % Applying a zero-crossing detection method to detect where the signal crosses the previously estimated threshold
 
 
 
-candidates=[];
+candidates  =[];
 for i=1:length(zX)-1
-    crit     = times(zX(i+1))-times(zX(i));
-    if crit <=4000
-        candidates = [candidates [times(zX(i)); times(zX(i+1))]];  %stores the indexes of the data_REM vector where zero crossings happen 2 by 2
+    crit     = times(zX(i+1))-times(zX(i));                        % define the criteria of the event duration which must be between 0 and 4 seconds
+    if crit <= 4000
+        candidates = [candidates [times(zX(i)); times(zX(i+1))]];  % stores the indexes of the data_REM vector where zero crossings happen 2 by 2
 
     end
 
@@ -129,30 +129,20 @@ end
 %%
 % Step3: Define and use the other criterias on the candidates 
 
-candidates2=[];
+candidates2   = [];
 for i=1:length(candidates)
     slope_dur =  cast( (candidates(2,i) - candidates(1,i))*100 , 'uint32');
     ind       =  cast(  candidates(1,i) , 'uint32' );
-    crit      = (data_REM(  ind +slope_dur  )  -  data_REM( ind ))/ cast( slope_dur,'double');
+    crit      = (data_REM(  ind +slope_dur  )  -  data_REM( ind ))/ cast( slope_dur,'double');       %the criteria is about the initial slope: it must be less than 1uV/ms
     if crit<0.001
         candidates2 = [candidates2 , candidates(:,i)];
     end
 end
 
 
-total_time=0;
-for i=1:length(candidates2)
-    total_time=total_time + ( candidates2(2,i) - candidates2(1,i) );
-end
-total_time=total_time/3600;
-
-
-
-
-
-time_REM= length(data_REM)/(1000*60*60);
-proportion= total_time*100/time_REM;
-
+total_time     = (sum(candidates2(2,:))  -  sum(candidates2(1,:)))  /3600 ;
+time_REM       = length(data_REM)/(1000*60*60);
+proportion     = total_time*100/time_REM;                                   %computation of the proportion of the events time compared to the REM time
 
 
 
