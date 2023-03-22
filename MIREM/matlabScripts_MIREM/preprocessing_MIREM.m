@@ -92,8 +92,10 @@ for ep=1:numEpochs
 end
 
 %%  
-data_REM    = data_EOG_bi.trial{1}(1, find(vectorREM == 1));
-times       = data_EOG_bi.time{1}(1, find(vectorREM == 1));
+full_data      = data_EOG_bi.trial{1};
+full_time      = data_EOG_bi.time{1};
+data_REM       = full_data(1, find(vectorREM == 1));
+time_REM       = full_time(1, find(vectorREM == 1));
 
 
 %%
@@ -107,42 +109,50 @@ threshold_G = max(GMModel.mu);
 
 
 %%
-% Step 2: Define zero crossing: zX see https://www.mathworks.com/matlabcentral/answers/267222-easy-way-of-finding-zero-crossing-of-a-function
+% Step 2: Define zero crossing: 
 
-zci         = @(v) find(v(:).*circshift(v(:), [-1 0]) <= 0); 
-data_thresh = data_REM - threshold_G;                           
-zX          = zci(data_thresh);                                 % Applying a zero-crossing detection method to detect where the signal crosses the previously estimated threshold
+data_thresh_pos  = data_REM - threshold_G;       
+data_thresh_neg  = data_REM + threshold_G;
+[ zX  , zset]    = detectzerocross(full_data);
+[ tpX , tpset]   = detectzerocross(data_thresh_pos);                                 % Applying a zero-crossing detection method to detect where the signal crosses the previously estimated threshold
+[ tnX , tnset]   = detectzerocross(data_thresh_neg);
+time_REM_zcp     = time_REM(tpX);
+time_REM_zcn     = time_REM(tnX);
 
 
+for i=1:length(zX)
+    cross       = [zset(i) zset(i+1)];
+    
+    if cross(1)==cross(2)
+        continue
+    end
 
-candidates  =[];
-for i=1:length(zX)-1
-    crit     = times(zX(i+1))-times(zX(i));                        % define the criteria of the event duration which must be between 0 and 4 seconds
-    if crit <= 4000
-        candidates = [candidates [times(zX(i)); times(zX(i+1))]];  % stores the indexes of the data_REM vector where zero crossings happen 2 by 2
+    switch cross(1)
+        
+        case 1   % Evenement au dessus de 0
+            
+            tmp= time_REM_zcp( full_time(zX(i)) < time_REM_zcp & time_REM_zcp < full_time(zX(i+1)) );
+
+            if any(tmp)
+                'lolzp'
+            end
+
+        case -1  % Evenement en dessous de zero
+            
+            tmp= time_REM_zcn( full_time(zX(i)) < time_REM_zcn & time_REM_zcn < full_time(zX(i+1)) );
+            if any(tmp)
+                'lolzn'
+            end
+
+                                %Calcul de peak rise/fall slope duration et conditions
+
+
 
     end
 
 end
 
 
-%%
-% Step3: Define and use the other criterias on the candidates 
-
-candidates2   = [];
-for i=1:length(candidates)
-    slope_dur =  cast( (candidates(2,i) - candidates(1,i))*100 , 'uint32');
-    ind       =  cast(  candidates(1,i) , 'uint32' );
-    crit      = (data_REM(  ind +slope_dur  )  -  data_REM( ind ))/ cast( slope_dur,'double');       %the criteria is about the initial slope: it must be less than 1uV/ms
-    if crit<0.001
-        candidates2 = [candidates2 , candidates(:,i)];
-    end
-end
-
-
-total_time     = (sum(candidates2(2,:))  -  sum(candidates2(1,:)))  /3600 ;
-time_REM       = length(data_REM)/(1000*60*60);
-proportion     = total_time*100/time_REM;                                   %computation of the proportion of the events time compared to the REM time
 
 
 
