@@ -118,37 +118,107 @@ data_thresh_neg  = data_REM + threshold_G;
 [ tnX , tnset]   = detectzerocross(data_thresh_neg);
 time_REM_zcp     = time_REM(tpX);
 time_REM_zcn     = time_REM(tnX);
+numEpochSlope    = 20 ;
+maxSlopes        = [] ;
+minSlopes        = [] ;
+eventpks         = [] ;
+REM_events_ts    = [] ;
+dur_crit         = 4  ;
+slope_crit       = 0.001;
 
-
-for i=1:length(zX)
+for i=1:length(zX)-1
     cross       = [zset(i) zset(i+1)];
     
     if cross(1)==cross(2)
-        continue
+        continue;
     end
 
     switch cross(1)
         
-        case 1   % Evenement au dessus de 0
+        case 1  % Evenement au dessus de 0
             
-            tmp= time_REM_zcp( full_time(zX(i)) < time_REM_zcp & time_REM_zcp < full_time(zX(i+1)) );
+            thresh_crit = time_REM_zcp( full_time(zX(i)) < time_REM_zcp & time_REM_zcp < full_time(zX(i+1)) ); % un threshold ctrossing dans le zero crossing ? 
+            
 
-            if any(tmp)
-                'lolzp'
+            if any(thresh_crit) %Il y a au moins un threshold crossing dans le zero crossing en question
+
+               if cross(2)-cross(1)< dur_crit % critère si le zero-crossing fait moins de 4secondes ?
+                   curr_set    = tpX( full_time(zX(i)) < time_REM_zcp & time_REM_zcp < full_time(zX(i+1)) );
+                   curr_data   = data_REM(  curr_set(1) :  curr_set(length(curr_set))  );
+                   eplength    = fix(length(curr_data)/numEpochSlope);
+                   ref_poly    = 1 : eplength ;
+                   maxs_tmp    = -1000;
+                   mins_tmp    = 1000;
+
+                   for j=1 : eplength : length(curr_data)-eplength
+                        p          = polyfit( ref_poly, curr_data( j:j+eplength -1), 1  );
+                        curr_slope = p(1);
+
+                        if curr_slope > maxs_tmp
+                            maxs_tmp = curr_slope;
+                        elseif curr_slope < mins_tmp
+                            mins_tmp = curr_slope;
+                        end
+
+                   end
+
+
+                   if maxs_tmp > slope_crit || abs(mins_tmp) > slope_crit   
+                       maxSlopes     = [maxSlopes maxs_tmp];
+                       minSlopes     = [minSlopes mins_tmp];
+                       eventpks      = [eventpks max(  data_REM(  curr_set(1) :  curr_set(length(curr_set))  )  )];
+                       REM_events_ts = [REM_events_ts;  full_time(zX(i)) full_time(zX(i+1)) ];
+                   end
+               end
+
             end
 
         case -1  % Evenement en dessous de zero
             
-            tmp= time_REM_zcn( full_time(zX(i)) < time_REM_zcn & time_REM_zcn < full_time(zX(i+1)) );
-            if any(tmp)
-                'lolzn'
+            thresh_crit = time_REM_zcn( full_time(zX(i)) < time_REM_zcn & time_REM_zcn < full_time(zX(i+1)) ); % un threshold crossing dans le zero crossing ?
+            
+            if any(thresh_crit)
+
+                if cross(2)-cross(1)< dur_crit % critère si le zero-crossing fait moins de 4secondes ?
+                   curr_set    = tnX( full_time(zX(i)) < time_REM_zcn & time_REM_zcn < full_time(zX(i+1)) );
+                   curr_data   = data_REM(  curr_set(1) :  curr_set(length(curr_set))  );
+                   eplength    = fix(length(curr_data)/numEpochSlope);
+                   ref_poly    = 1 : eplength;
+                   maxs_tmp    = -1000;
+                   mins_tmp    = 1000;
+                   
+                   for j=1 : eplength : length(curr_data)-eplength                             %Calcul des max et min slopes sur le segement de data considéré en numEpochSlope itérations
+                        p          = polyfit( ref_poly, curr_data( j:j+eplength -1 ), 1  );
+                        curr_slope = p(1);
+
+                        if curr_slope > maxs_tmp
+                            maxs_tmp = curr_slope;
+                        elseif curr_slope < mins_tmp
+                            mins_tmp = curr_slope;
+                        end
+
+                   end
+
+
+                   if maxs_tmp > slope_crit || abs(mins_tmp) > slope_crit
+                       maxSlopes     = [maxSlopes maxs_tmp];
+                       minSlopes     = [minSlopes mins_tmp];
+                       eventpks      = [eventpks max(  data_REM(  curr_set(1) :  curr_set(length(curr_set))  )  )];
+                       REM_events_ts = [REM_events_ts;  full_time(zX(i)) full_time(zX(i+1)) ];
+                   end
+                end
+            
+                
+
             end
-
-                                %Calcul de peak rise/fall slope duration et conditions
-
-
-
+        
+        otherwise
+            "Bah normalement c'est pas faisable"
     end
+
+end
+
+
 
 end
 
