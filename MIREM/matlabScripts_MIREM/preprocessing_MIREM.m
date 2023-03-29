@@ -123,6 +123,7 @@ maxSlopes        = [] ;
 minSlopes        = [] ;
 eventpks         = [] ;
 REM_events_ts    = [] ;
+REM_events_data  = [] ;
 dur_crit         = 4  ;
 slope_crit       = 0.001;
 
@@ -167,7 +168,8 @@ for i=1:length(zX)-1
                        maxSlopes     = [maxSlopes maxs_tmp];
                        minSlopes     = [minSlopes mins_tmp];
                        eventpks      = [eventpks max(  data_REM(  curr_set(1) :  curr_set(length(curr_set))  )  )];
-                       REM_events_ts = [REM_events_ts;  full_time(zX(i)) full_time(zX(i+1)) ];
+                       REM_events_ts = [REM_events_ts  full_time(zX(i):zX(i+1)) ];
+                       REM_events_data = [REM_events_data full_data(zX(i):zX(i+1))] ;
                    end
                end
 
@@ -201,10 +203,11 @@ for i=1:length(zX)-1
 
 
                    if maxs_tmp > slope_crit || abs(mins_tmp) > slope_crit
-                       maxSlopes     = [maxSlopes maxs_tmp];
-                       minSlopes     = [minSlopes mins_tmp];
-                       eventpks      = [eventpks max(  data_REM(  curr_set(1) :  curr_set(length(curr_set))  )  )];
-                       REM_events_ts = [REM_events_ts;  full_time(zX(i)) full_time(zX(i+1)) ];
+                       maxSlopes       = [maxSlopes maxs_tmp];
+                       minSlopes       = [minSlopes mins_tmp];
+                       eventpks        = [eventpks max(  data_REM(  curr_set(1) :  curr_set(length(curr_set))  )  )];
+                       REM_events_ts   = [REM_events_ts  full_time(zX(i):zX(i+1)) ];
+                       REM_events_data = [REM_events_data full_data(zX(i):zX(i+1))] ;
                    end
                 end
             
@@ -223,6 +226,10 @@ end
 end
 
 
+figure()
+plot(full_time, full_data)
+hold on 
+scatter(REM_events_ts,REM_events_data,36,'red','filled')
+title('Data REM along with the REM events detected')
 
-
-
+hold off
