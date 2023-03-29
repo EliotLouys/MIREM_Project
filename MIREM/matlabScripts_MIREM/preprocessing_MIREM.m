@@ -1,9 +1,36 @@
-function [proportion]=preprocessing_MIREM(userName, nameEEG, nameScore)
+function [REM_events_ts, REM_events_data, maxSlopes, minSlopes, eventpks] = preprocessing_MIREM(userName, nameEEG, nameScore, plot)
 
 % Pipeline to preprocess EEG data in MIREM project
-%   use as preprocessing_MIREM('jb1', '105_NN_Sommeil.edf', '105_NN_Sommeil_scores.csv')
+%   use as [REM_events_ts, REM_events_data, maxSlopes, minSlopes, eventpks]
+%   = preprocessing_MIREM('jb1', '105_NN_Sommeil.edf', '105_NN_Sommeil_scores.csv','no');
 %
 % JB Eichenlaub, 2023 || jb.eichenlaub@gmail.com (MATLAB2022a)
+% 
+% input arguments :
+% 
+% userName  : must be one of the users defined in UserSessionInfo_MIREM.m where all the paths to the data/scoring has been set
+% nameEEG   : name of the data edf file of the data and onle the file name; the path has to be set in UserSessionInfo_MIREM.m
+% nameScore : name of the scoring csv file of the data and onle the file name; the path has to be set in UserSessionInfo_MIREM.m
+% plot      : must be 'yes' or 'no'. If 'yes', the programm will plot the results.
+% 
+% output arguments :
+% 
+% REM_events_ts   : vector of size 'number of events detected' where the timestamps where REM events were detected is stored. Should be same size as REM_events_data.
+% REM_events_data : vector of size 'number of events detected' where the values of the signal corresponding the timestamps in REM_events_ts is stored. Should be same size as REM_events_ts.
+% maxSlopes       : vector of size 'number of events detected' where the maximum slope each event is stored.
+% minSlopes       : vector of size 'number of events detected' where the mnimum slope each event is stored.
+% eventpks        : vector of size 'number of events detected' where the highest value detected in each event is stored.
+
+%% Verifying the input argument 
+if ~strcmp(plot,'yes') & ~strcmp(plot,'no')
+    disp( ['invalid argument plot=' plot '; must be yes or no, please use valid argument'])
+    maxSlopes        = [] ;
+    minSlopes        = [] ;
+    eventpks         = [] ;
+    REM_events_ts    = [] ;
+    REM_events_data  = [] ;
+    return;
+end
 
 %% Parameters
 paramsPrepo.highPassFreq  = 0.1;
@@ -138,12 +165,12 @@ for i=1:length(zX)-1
         
         case 1  % Evenement au dessus de 0
             
-            thresh_crit = time_REM_zcp( full_time(zX(i)) < time_REM_zcp & time_REM_zcp < full_time(zX(i+1)) ); % un threshold ctrossing dans le zero crossing ? 
+            thresh_crit = time_REM_zcp( full_time(zX(i)) < time_REM_zcp & time_REM_zcp < full_time(zX(i+1)) );  % un threshold crossing dans le zero crossing 
             
 
             if any(thresh_crit) %Il y a au moins un threshold crossing dans le zero crossing en question
 
-               if cross(2)-cross(1)< dur_crit % critère si le zero-crossing fait moins de 4secondes ?
+               if cross(2)-cross(1)< dur_crit                                                                   % critère si le zero-crossing fait moins de 4secondes ?
                    curr_set    = tpX( full_time(zX(i)) < time_REM_zcp & time_REM_zcp < full_time(zX(i+1)) );
                    curr_data   = data_REM(  curr_set(1) :  curr_set(length(curr_set))  );
                    eplength    = fix(length(curr_data)/numEpochSlope);
@@ -151,10 +178,10 @@ for i=1:length(zX)-1
                    maxs_tmp    = -1000;
                    mins_tmp    = 1000;
 
-                   for j=1 : eplength : length(curr_data)-eplength
-                        p          = polyfit( ref_poly, curr_data( j:j+eplength -1), 1  );
-                        curr_slope = p(1);
-
+                   for j=1 : eplength : length(curr_data)-eplength                                              % Calcul de pente : sur l'intervalle entre deux zeros-crossing, 
+                        p          = polyfit( ref_poly, curr_data( j:j+eplength -1), 1  );                      % on adapte un polynome de degré 1 un nombre numEpochSlope
+                        curr_slope = p(1);                                                                      % de fois et on prends le coefficient de cette droite comme pente.
+                                                                                                                % On garde ensuite la pente max et min detectée temporairement. 
                         if curr_slope > maxs_tmp
                             maxs_tmp = curr_slope;
                         elseif curr_slope < mins_tmp
@@ -164,11 +191,11 @@ for i=1:length(zX)-1
                    end
 
 
-                   if maxs_tmp > slope_crit || abs(mins_tmp) > slope_crit   
-                       maxSlopes     = [maxSlopes maxs_tmp];
-                       minSlopes     = [minSlopes mins_tmp];
-                       eventpks      = [eventpks max(  data_REM(  curr_set(1) :  curr_set(length(curr_set))  )  )];
-                       REM_events_ts = [REM_events_ts  full_time(zX(i):zX(i+1)) ];
+                   if maxs_tmp > slope_crit || abs(mins_tmp) > slope_crit                                              % On applique le critère de pente sur les pentes min et max
+                       maxSlopes       = [maxSlopes maxs_tmp];                                                         % temporairement stockées. Si le critère est rempli, on stocke alors
+                       minSlopes       = [minSlopes mins_tmp];                                                         % ces pentes, le maximum atteint sur l'évènement, les timestamps et 
+                       eventpks        = [eventpks max(  data_REM(  curr_set(1) :  curr_set(length(curr_set))  )  )];  % data correspondant à l'event dans des vecteurs dédiés à être retournés par la fonction.
+                       REM_events_ts   = [REM_events_ts  full_time(zX(i):zX(i+1)) ];
                        REM_events_data = [REM_events_data full_data(zX(i):zX(i+1))] ;
                    end
                end
@@ -189,10 +216,10 @@ for i=1:length(zX)-1
                    maxs_tmp    = -1000;
                    mins_tmp    = 1000;
                    
-                   for j=1 : eplength : length(curr_data)-eplength                             %Calcul des max et min slopes sur le segement de data considéré en numEpochSlope itérations
-                        p          = polyfit( ref_poly, curr_data( j:j+eplength -1 ), 1  );
-                        curr_slope = p(1);
-
+                   for j=1 : eplength : length(curr_data)-eplength                                                    % Calcul de pente : sur l'intervalle entre deux zeros-crossing, 
+                        p          = polyfit( ref_poly, curr_data( j:j+eplength -1 ), 1  );                           % on adapte un polynome de degré 1 un nombre numEpochSlope
+                        curr_slope = p(1);                                                                            % de fois et on prends le coefficient de cette droite comme pente.
+                                                                                                                      % On garde ensuite la pente max et min detectée temporairement. 
                         if curr_slope > maxs_tmp
                             maxs_tmp = curr_slope;
                         elseif curr_slope < mins_tmp
@@ -202,10 +229,10 @@ for i=1:length(zX)-1
                    end
 
 
-                   if maxs_tmp > slope_crit || abs(mins_tmp) > slope_crit
-                       maxSlopes       = [maxSlopes maxs_tmp];
-                       minSlopes       = [minSlopes mins_tmp];
-                       eventpks        = [eventpks max(  data_REM(  curr_set(1) :  curr_set(length(curr_set))  )  )];
+                   if maxs_tmp > slope_crit || abs(mins_tmp) > slope_crit                                             % On applique le critère de pente sur les pentes min et max
+                       maxSlopes       = [maxSlopes maxs_tmp];                                                        % temporairement stockées. Si le critère est rempli, on stocke alors
+                       minSlopes       = [minSlopes mins_tmp];                                                        % ces pentes, le maximum atteint sur l'évènement, les timestamps et 
+                       eventpks        = [eventpks max(  data_REM(  curr_set(1) :  curr_set(length(curr_set))  )  )]; % data correspondant à l'event dans des vecteurs dédiés à être retournés par la fonction.
                        REM_events_ts   = [REM_events_ts  full_time(zX(i):zX(i+1)) ];
                        REM_events_data = [REM_events_data full_data(zX(i):zX(i+1))] ;
                    end
@@ -214,22 +241,25 @@ for i=1:length(zX)-1
                 
 
             end
-        
-        otherwise
-            "Bah normalement c'est pas faisable"
     end
 
 end
 
 
+    if strcmp(plot,'yes')                                                              %plotting the results depending on the input argument 'plot'
+        figure()
+        plot(full_time, full_data)
+        hold on 
+        scatter(REM_events_ts,REM_events_data,36,'red','filled')
+        title('Data REM along with the REM events detected')
+        xlabel('Time in sec')
+        ylabel('Amplitude in uV')
+        hold off
+    
+    
+    end
+
 
 end
 
 
-figure()
-plot(full_time, full_data)
-hold on 
-scatter(REM_events_ts,REM_events_data,36,'red','filled')
-title('Data REM along with the REM events detected')
-
-hold off
