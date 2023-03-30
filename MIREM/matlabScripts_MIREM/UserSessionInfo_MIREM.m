@@ -36,7 +36,8 @@ ft_defaults;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function userInfo = extractUserInfo(rootDirProject, rootDirUtilities)
 
-userInfo.dataDir       = [rootDirProject   'data\'];
+userInfo.dataDir       = [rootDirProject   'data\raw_data\'];
+userInfo.scorDir       = [rootDirProject   'data\scoring\'];
 userInfo.analysisDir   = [rootDirProject   'analysis\'];
 userInfo.matlabScripts = [rootDirProject   'matlabScripts_MIREM\'];
 userInfo.notebook      = [rootDirProject   'notebook_MIREM\'];

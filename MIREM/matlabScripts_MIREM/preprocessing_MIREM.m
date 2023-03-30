@@ -24,11 +24,11 @@ function [REM_events_ts, REM_events_data, maxSlopes, minSlopes, eventpks] = prep
 %% Verifying the input argument 
 if ~strcmp(plot,'yes') & ~strcmp(plot,'no')
     disp( ['invalid argument plot=' plot '; must be yes or no, please use valid argument'])
-    maxSlopes        = [] ;
-    minSlopes        = [] ;
-    eventpks         = [] ;
-    REM_events_ts    = [] ;
-    REM_events_data  = [] ;
+    maxSlopes        = [NaN] ;
+    minSlopes        = [NaN] ;
+    eventpks         = [NaN] ;
+    REM_events_ts    = [NaN] ;
+    REM_events_data  = [NaN] ;
     return;
 end
 
@@ -44,6 +44,8 @@ paramsPrepo.lowPassOrder = 4;
 userInfo    = UserSessionInfo_MIREM(userName);
 analysisDir = userInfo.analysisDir;
 dataDir     = userInfo.dataDir;
+scorDir     = userInfo.scorDir;
+
 % Create, if necessary, analysis folder
 if ~exist(analysisDir, 'dir')
     disp(['Making directory ' analysisDir])
@@ -100,7 +102,7 @@ fsample    = data_EOG_bi.fsample;
 %% 
 
 % open score file
-scoreFile               = [dataDir nameScore];
+scoreFile               = [scorDir nameScore];
 opts                    = detectImportOptions(scoreFile);
 opts.DataLines          = 3;
 opts.VariableNamesLine  = 2;
@@ -179,8 +181,8 @@ for i=1:length(zX)-1
                    mins_tmp    = 1000;
 
                    for j=1 : eplength : length(curr_data)-eplength                                              % Calcul de pente : sur l'intervalle entre deux zeros-crossing, 
-                        p          = polyfit( ref_poly, curr_data( j:j+eplength -1), 1  );                      % on adapte un polynome de degré 1 un nombre numEpochSlope
-                        curr_slope = p(1);                                                                      % de fois et on prends le coefficient de cette droite comme pente.
+                        est_slope  = polyfit( ref_poly, curr_data( j:j+eplength -1), 1  );                      % on adapte un polynome de degré 1 un nombre numEpochSlope
+                        curr_slope = est_slope(1);                                                                      % de fois et on prends le coefficient de cette droite comme pente.
                                                                                                                 % On garde ensuite la pente max et min detectée temporairement. 
                         if curr_slope > maxs_tmp
                             maxs_tmp = curr_slope;
@@ -217,8 +219,8 @@ for i=1:length(zX)-1
                    mins_tmp    = 1000;
                    
                    for j=1 : eplength : length(curr_data)-eplength                                                    % Calcul de pente : sur l'intervalle entre deux zeros-crossing, 
-                        p          = polyfit( ref_poly, curr_data( j:j+eplength -1 ), 1  );                           % on adapte un polynome de degré 1 un nombre numEpochSlope
-                        curr_slope = p(1);                                                                            % de fois et on prends le coefficient de cette droite comme pente.
+                        est_slope  = polyfit( ref_poly, curr_data( j:j+eplength -1 ), 1  );                           % on adapte un polynome de degré 1 un nombre numEpochSlope
+                        curr_slope = est_slope(1);                                                                            % de fois et on prends le coefficient de cette droite comme pente.
                                                                                                                       % On garde ensuite la pente max et min detectée temporairement. 
                         if curr_slope > maxs_tmp
                             maxs_tmp = curr_slope;
