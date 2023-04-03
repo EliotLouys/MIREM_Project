@@ -15,11 +15,16 @@ function [detected_REM_table] = preprocessing_MIREM(userName, nameEEG, nameScore
 % 
 % output arguments :
 % 
-% REM_events_ts   : vector of size 'number of events detected' where the timestamps where REM events were detected is stored. Should be same size as REM_events_data.
-% REM_events_data : vector of size 'number of events detected' where the values of the signal corresponding the timestamps in REM_events_ts is stored. Should be same size as REM_events_ts.
-% maxSlopes       : vector of size 'number of events detected' where the maximum slope each event is stored.
-% minSlopes       : vector of size 'number of events detected' where the mnimum slope each event is stored.
-% eventpks        : vector of size 'number of events detected' where the highest value detected in each event is stored.
+% detected_REM_table : a structure with 7 fields that returns the following
+% fields:
+% 
+% start_index   : vector of size 'number of events detected' where the starting indexes of each REM are stored.
+% stop_index    : vector of size 'number of events detected' where the stopping indexes of each REM are stored.
+% max_slope       : vector of size 'number of events detected' where the maximum slope each event is stored. The units is uV/ms.
+% min_slope       : vector of size 'number of events detected' where the minimum slope each event is stored. The units is uV/ms
+% peak        : vector of size 'number of events detected' where the highest value detected in each event is stored.
+% full_data : vector where the original signal in bipolar resampled at 100Hz is stored.
+% full_time : vector where the time vector resampled at 100Hz is stored
 
 
 
@@ -80,6 +85,7 @@ resampled_data = ft_resampledata(cfg, data_EOG);
 
 % bipolar
 cfg             = [];
+bonsoir = cfg;
 cfg.channel     = 'all';
 cfg.reref       = 'yes';
 cfg.refchannel  = resampled_data.label{2};
@@ -123,16 +129,16 @@ for ep=1:numEpochs
     end
 end
 
-%%  
+%%  loading some signals we will need later.
 full_data      = data_EOG_bi.trial{1};
 full_time      = data_EOG_bi.time{1};
 data_REM       = full_data(1, find(vectorREM == 1));
-time_REM       = full_time(1, find(vectorREM == 1));
 
 
 %%
-% Step 1: Define amplitude threshold using the Gaussian Mixture Model to
+% Step 1: Define the amplitude threshold using the Gaussian Mixture Model to
 % fit the peaks of the signal.
+
 abs_signal  = abs(data_REM);
 pks         = findpeaks(abs_signal);
 pks(pks>500)= [];
@@ -141,35 +147,35 @@ threshold_G = max(GMModel.mu);
 
 
 %%
-% Step 2: Define zero crossing: 
-
-
-%TODO utiliser ismember ou l'autre jsp a regarder, c'est bien aussi
-%intersect je crois. 
-%TODO sur chaque zero crossing, on regarde les zeros crossings qui sont
-%dans les periodes REM. Sur les zeros crossing de periode REM: on va
-%regarder si on a au moins une valeur (en abs) qui dépasse le threshold
-%voulu. Ensuite on regarde si la durée est <4s et ensuite on calcule pente:
-%pour le zero crossing, on va faire un intersect entre le masque et les
-%indices de zc trouvés et ducoup on garde juste les indices qui nous
-%intéressent. 
+% Step 2: First, we will detect every zero crossing in the signal.
+% Analyzing every zero crossing detected that are during REM sleep stages,
+% we will apply 3 criteriums on the potential REM events and if the three 
+% criteria are met, we will consider the current event as a REM. 
 
 
 
-
-dur_crit         = 4  ;
+% defining our criterias values 
+dur_crit         = 4  ;   
 slope_crit       = 10 ;
 
+% Applying a zero-crossing detection method to detect where the signal crosses the previously estimated threshold
+[ zX  , zset]    = detectzerocross(full_data);      
 
-[ zX  , zset]    = detectzerocross(full_data);            % Applying a zero-crossing detection method to detect where the signal crosses the previously estimated threshold
+% Keeping only the zero-crossings during REM stages of sleep
 candidates         = intersect(zX,find(vectorREM));
-candidatesset      = zset(ismember(zX,find(vectorREM)));
+candidatesset      = zset(ismember(zX,find(vectorREM))); 
+
+% Building the structure where we will return the informations about the
+% detected REM events. 
 detected_REM_table = struct('start_index', {0}, 'stop_index', {0}, 'max_slope', {0}, 'min_slope', {0}, 'peak', {0}, 'full_time', full_time, 'full_data', full_data);
 
 
+
+% Loop over the candidates and applying the criterias to every candidates.
 for i=1:length(candidates)-1
+
+    % Checking that the two zero crossing aren't both onsets or offsets. 
     cross       = [candidatesset(i) candidatesset(i+1)];
-    
     if cross(1)==cross(2)
         continue;
     end
@@ -181,26 +187,37 @@ for i=1:length(candidates)-1
         set='negative crossing';
     end
 
-
+    % Keeping just the current data to apply our criterias.
     curr_data     = full_data(candidates(i):candidates(i+1));
+
+    % Applying the threshold criteria with the threshold defined earlier
+    % with the GMM method.
     thresh_crit   = max( abs( curr_data ) );
-
     if thresh_crit > threshold_G
-        time_crit = full_time(candidates(i+1))-full_time(candidates(i));
 
+        % Applying the time criteria, a REM event can't last longer than 4
+        % seconds
+
+        time_crit = full_time(candidates(i+1))-full_time(candidates(i));
         if time_crit < 4
 
+            % Computing the slopes and applying the slope criteria: the
+            % signal must have a maximum or minimum slope above 1uV/ms
+            % (absolute value).
             slope_vector= diff(curr_data);
             maxSlope= max(slope_vector);
             minSlope=min(slope_vector);
-
-
             if maxSlope > slope_crit || abs(minSlope) > slope_crit 
+
+                % All criterias are met we store the useful parameters of
+                % each event in the results structure. 
                 detected_REM_table.max_slope( length(detected_REM_table.max_slope)+1)     = maxSlope;
                 detected_REM_table.min_slope( length(detected_REM_table.min_slope)+1)     = minSlope;
                 detected_REM_table.start_index( length(detected_REM_table.start_index)+1) = candidates(i);
                 detected_REM_table.stop_index( length(detected_REM_table.stop_index)+1)   = candidates(i+1);
-
+    
+                % Deciding if we must store a maximum or a minimum peak
+                % depending on the positive or negative crossing.
                 if strcmp(set,'positive crossing')
                     detected_REM_table.peak( length(detected_REM_table.peak)+1)           = max(curr_data);
                 elseif strcmp(set,'negative crossing')
@@ -215,6 +232,7 @@ for i=1:length(candidates)-1
 
 end   
 
+% Must delete first value of each fields used to create the structure. 
 detected_REM_table.max_slope(1)   = [];
 detected_REM_table.min_slope(1)   = [];
 detected_REM_table.start_index(1) = [];
