@@ -5,13 +5,15 @@ function [detected_REM_table] = preprocessing_MIREM(userName, nameEEG, nameScore
 %   = preprocessing_MIREM('jb1', '105_NN_Sommeil.edf', '105_NN_Sommeil_scores.csv');
 %
 % JB Eichenlaub, 2023 || jb.eichenlaub@gmail.com (MATLAB2022a)
+% E Louys, 2023 || eliot.louys@grenoble-inp.org (MATLAB2022a)
+% 
 % 
 % input arguments :
 % 
 % userName  : must be one of the users defined in UserSessionInfo_MIREM.m where all the paths to the data/scoring has been set
 % nameEEG   : name of the data edf file of the data and onle the file name; the path has to be set in UserSessionInfo_MIREM.m
 % nameScore : name of the scoring csv file of the data and onle the file name; the path has to be set in UserSessionInfo_MIREM.m
-
+% 
 % 
 % output arguments :
 % 
@@ -20,11 +22,11 @@ function [detected_REM_table] = preprocessing_MIREM(userName, nameEEG, nameScore
 % 
 % start_index   : vector of size 'number of events detected' where the starting indexes of each REM are stored.
 % stop_index    : vector of size 'number of events detected' where the stopping indexes of each REM are stored.
-% max_slope       : vector of size 'number of events detected' where the maximum slope each event is stored. The units is uV/ms.
-% min_slope       : vector of size 'number of events detected' where the minimum slope each event is stored. The units is uV/ms
-% peak        : vector of size 'number of events detected' where the highest value detected in each event is stored.
-% full_data : vector where the original signal in bipolar resampled at 100Hz is stored.
-% full_time : vector where the time vector resampled at 100Hz is stored
+% max_slope     : vector of size 'number of events detected' where the maximum slope each event is stored. The units is uV/ms.
+% min_slope     : vector of size 'number of events detected' where the minimum slope each event is stored. The units is uV/ms
+% peak          : vector of size 'number of events detected' where the highest value detected in each event is stored.
+% full_data     : vector where the original signal in bipolar resampled at 100Hz is stored.
+% full_time     : vector where the time vector resampled at 100Hz is stored.
 
 
 
@@ -83,9 +85,9 @@ cfg            = [];
 cfg.resamplefs = 100;
 resampled_data = ft_resampledata(cfg, data_EOG);
 
+
 % bipolar
 cfg             = [];
-bonsoir = cfg;
 cfg.channel     = 'all';
 cfg.reref       = 'yes';
 cfg.refchannel  = resampled_data.label{2};
