@@ -24,7 +24,8 @@ function [detected_REM_table] = preprocessing_MIREM(userName, nameEEG, nameScore
 % stop_index    : vector of size 'number of events detected' where the stopping indexes of each REM are stored.
 % max_slope     : vector of size 'number of events detected' where the maximum slope each event is stored. The units is uV/ms.
 % min_slope     : vector of size 'number of events detected' where the minimum slope each event is stored. The units is uV/ms
-% peak          : vector of size 'number of events detected' where the highest value detected in each event is stored.
+% peak          : vector of size 'number of events detected' where the highest value detected in each event is stored. The unit is uV.
+% duration      : vector of size 'number of events detected' where the duration of each event is stored. The unit is seconds.
 % full_data     : vector where the original signal in bipolar resampled at 100Hz is stored.
 % full_time     : vector where the time vector resampled at 100Hz is stored.
 
@@ -36,6 +37,8 @@ paramsPrepo.highPassOrder = 4;
 
 paramsPrepo.lowPassFreq  = 3;
 paramsPrepo.lowPassOrder = 4;
+
+downsampling_frequency= 100;
 
 %% Define main paths and folders
 % collect users' and sessions' info
@@ -82,7 +85,7 @@ data_EOG       = ft_preprocessing(cfg, data_EOG);
 
 %resampling at 100Hz
 cfg            = [];
-cfg.resamplefs = 100;
+cfg.resamplefs = downsampling_frequency;
 resampled_data = ft_resampledata(cfg, data_EOG);
 
 
@@ -135,7 +138,7 @@ end
 full_data      = data_EOG_bi.trial{1};
 full_time      = data_EOG_bi.time{1};
 data_REM       = full_data(1, find(vectorREM == 1));
-
+% time_REM       = full_time(1, find(vectorREM == 1));
 
 %%
 % Step 1: Define the amplitude threshold using the Gaussian Mixture Model to
@@ -169,7 +172,7 @@ candidatesset      = zset(ismember(zX,find(vectorREM)));
 
 % Building the structure where we will return the informations about the
 % detected REM events. 
-detected_REM_table = struct('start_index', {0}, 'stop_index', {0}, 'max_slope', {0}, 'min_slope', {0}, 'peak', {0}, 'full_time', full_time, 'full_data', full_data);
+detected_REM_table = struct('start_index', {0}, 'stop_index', {0}, 'max_slope', {0}, 'min_slope', {0}, 'peak', {0}, 'duration', {0}, 'full_time', full_time, 'full_data', full_data);
 
 
 
@@ -200,15 +203,15 @@ for i=1:length(candidates)-1
         % Applying the time criteria, a REM event can't last longer than 4
         % seconds
 
-        time_crit = full_time(candidates(i+1))-full_time(candidates(i));
-        if time_crit < 4
+        duration = full_time(candidates(i+1))-full_time(candidates(i));
+        if duration < dur_crit
 
             % Computing the slopes and applying the slope criteria: the
             % signal must have a maximum or minimum slope above 1uV/ms
             % (absolute value).
-            slope_vector= diff(curr_data);
-            maxSlope= max(slope_vector);
-            minSlope=min(slope_vector);
+            slope_vector = diff(curr_data);
+            maxSlope     = max(slope_vector);
+            minSlope     = min(slope_vector);
             if maxSlope > slope_crit || abs(minSlope) > slope_crit 
 
                 % All criterias are met we store the useful parameters of
@@ -217,7 +220,8 @@ for i=1:length(candidates)-1
                 detected_REM_table.min_slope( length(detected_REM_table.min_slope)+1)     = minSlope;
                 detected_REM_table.start_index( length(detected_REM_table.start_index)+1) = candidates(i);
                 detected_REM_table.stop_index( length(detected_REM_table.stop_index)+1)   = candidates(i+1);
-    
+                detected_REM_table.duration( length(detected_REM_table.duration)+1)       = duration;
+
                 % Deciding if we must store a maximum or a minimum peak
                 % depending on the positive or negative crossing.
                 if strcmp(set,'positive crossing')
@@ -240,9 +244,10 @@ detected_REM_table.min_slope(1)   = [];
 detected_REM_table.start_index(1) = [];
 detected_REM_table.stop_index(1)  = [];
 detected_REM_table.peak(1)        = [];
+detected_REM_table.duration(1)    = [];
 
-
-
+%TODO implanter un masque des valeurs absurdes et enlever ces valeurs
+%absurdes au moment de regarder les pentes et les threshold
 
 end
 

@@ -26,34 +26,46 @@ for i=1:numfiles
     results(i).filename      = datafilenames(i,:);
 end
 
-
-% plotting signals and results in fig 1 and plotting the means of GMM
-% alongside the peaks in fig2.
-figure(1)
-plot(results(1).results_table.full_time, results(1).results_table.full_data)
-hold on 
-for i=1:length(results(1).results_table.start_index)
-    scatter(results(1).results_table.full_time(results(1).results_table.start_index(i):results(1).results_table.stop_index(i)),results(1).results_table.full_data(results(1).results_table.start_index(i):results(1).results_table.stop_index(i)), 'r')
-end
-title(['Night ' results(1).filename])
-xlim([23430 23460])
-xlabel('Time (in seconds)')
-ylabel('Amplitude (in uV)')
-legend('Full signal in bipolar', 'detected REM events')
-hold off
-
-
-[pks, locs ]=findpeaks(full_data);
-
-figure(2)
-plot(results(1).results_table.full_time, results(1).results_table.full_data)
-hold on
-scatter(full_time(locs),full_data(locs),'g')
-plot([0 results(1).results_table.full_time(length(results(1).results_table.full_time))], [max(GMModel.mu) max(GMModel.mu)])
-plot([0 results(1).results_table.full_time(length(results(1).results_table.full_time))], [min(GMModel.mu) min(GMModel.mu)])
-title(['Night ' results(1).filename])
-xlim([23430 23460])
-xlabel('Time (in seconds)')
-ylabel('Amplitude (in uV)')
-legend('Full signal in bipolar', 'First mean in the GMM model', 'Second mean in the GMM model')
-hold off
+% % 
+% % plotting signals and results in fig 1 and plotting the means of GMM
+% % alongside the peaks in fig2.
+% figure(1)
+% plot(results(1).results_table.full_time, results(1).results_table.full_data)
+% hold on 
+% for i=1:length(results(1).results_table.start_index)
+%     scatter(results(1).results_table.full_time(results(1).results_table.start_index(i):results(1).results_table.stop_index(i)),results(1).results_table.full_data(results(1).results_table.start_index(i):results(1).results_table.stop_index(i)), 'r')
+% end
+% title(['Night ' results(1).filename])
+% % xlim([23430 23460])
+% xlabel('Time (in seconds)')
+% ylabel('Amplitude (in uV)')
+% legend('Full signal in bipolar', 'detected REM events')
+% hold off
+% 
+% 
+% [pks, locs ]=findpeaks(full_data);
+% 
+% figure(2)
+% plot(results(1).results_table.full_time, results(1).results_table.full_data)
+% hold on
+% scatter(full_time(locs),full_data(locs),'g')
+% plot([0 results(1).results_table.full_time(length(results(1).results_table.full_time))], [max(GMModel.mu) max(GMModel.mu)])
+% plot([0 results(1).results_table.full_time(length(results(1).results_table.full_time))], [min(GMModel.mu) min(GMModel.mu)])
+% title(['Night ' results(1).filename])
+% xlim([23430 23460])
+% xlabel('Time (in seconds)')
+% ylabel('Amplitude (in uV)')
+% legend('Full signal in bipolar', 'First mean in the GMM model', 'Second mean in the GMM model')
+% hold off
+% 
+% 
+% 
+% figure(3)
+% plot(full_time, full_data, 'b')
+% hold on 
+% plot(time_REM, data_REM, 'r')
+% title('The full night 105_NN_Sommeil')
+% legend('Full signal in bipolar','REM phases only')
+% xlabel('Time (in seconds)')
+% ylabel('Amplitude (in uV)')
+% hold off
