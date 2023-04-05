@@ -5,7 +5,6 @@ function [detected_REM_table] = preprocessing_MIREM(userName, nameEEG, nameScore
 %   = preprocessing_MIREM('jb1', '105_NN_Sommeil.edf', '105_NN_Sommeil_scores.csv');
 %
 % JB Eichenlaub, 2023 || jb.eichenlaub@gmail.com (MATLAB2022a)
-% E Louys, 2023 || eliot.louys@grenoble-inp.org (MATLAB2022a)
 % 
 % 
 % input arguments :
@@ -140,15 +139,23 @@ full_time      = data_EOG_bi.time{1};
 data_REM       = full_data(1, find(vectorREM == 1));
 % time_REM       = full_time(1, find(vectorREM == 1));
 
+
+% A mask of incoherent values in the signal that should not be taken into
+% account for the following operations. 
+iv_thresh                     = 500;
+iv_mask                       = ones( 1, length(full_data) );
+iv_mask( iv_mask > iv_thresh) = 0;
+
+
 %%
 % Step 1: Define the amplitude threshold using the Gaussian Mixture Model to
 % fit the peaks of the signal.
 
-abs_signal  = abs(data_REM);
-pks         = findpeaks(abs_signal);
-pks(pks>500)= [];
-GMModel     = fitgmdist(transpose(pks),2);
-threshold_G = max(GMModel.mu);
+abs_signal         = abs(data_REM);
+pks                = findpeaks(abs_signal);
+pks(pks>iv_thresh) = [];
+GMModel            = fitgmdist(transpose(pks),2);
+threshold_G        = max(GMModel.mu);
 
 
 %%
@@ -194,6 +201,7 @@ for i=1:length(candidates)-1
 
     % Keeping just the current data to apply our criterias.
     curr_data     = full_data(candidates(i):candidates(i+1));
+    curr_iv_mask  = iv_mask(candidates(i):candidates(i+1));
 
     % Applying the threshold criteria with the threshold defined earlier
     % with the GMM method.
@@ -209,9 +217,12 @@ for i=1:length(candidates)-1
             % Computing the slopes and applying the slope criteria: the
             % signal must have a maximum or minimum slope above 1uV/ms
             % (absolute value).
-            slope_vector = diff(curr_data);
+            curr_iv_data = curr_data(curr_iv_mask==1);
+            slope_vector = diff(curr_iv_data);
+
             maxSlope     = max(slope_vector);
             minSlope     = min(slope_vector);
+
             if maxSlope > slope_crit || abs(minSlope) > slope_crit 
 
                 % All criterias are met we store the useful parameters of
