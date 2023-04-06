@@ -169,7 +169,7 @@ threshold_G        = max(GMModel.mu);
 % defining our criterias values 
 dur_crit         = 4  ;   
 slope_crit       = 10 ;
-
+ 
 % Applying a zero-crossing detection method to detect where the signal crosses the previously estimated threshold
 [ zX  , zset]    = detectzerocross(full_data);      
 
@@ -258,7 +258,8 @@ detected_REM_table.peak(1)        = [];
 detected_REM_table.duration(1)    = [];
 
 %TODO implanter un masque des valeurs absurdes et enlever ces valeurs
-%absurdes au moment de regarder les pentes et les threshold
+%absurdes au moment de regarder les pentes et les threshold j'ai pas eu
+%trop le temps d'y réfléchir pour l'instant oupsi. 
 
 end
 

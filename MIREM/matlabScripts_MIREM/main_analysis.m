@@ -42,22 +42,24 @@ end
 % legend('Full signal in bipolar', 'detected REM events')
 % hold off
 % 
-% 
-% [pks, locs ]=findpeaks(full_data);
-% 
-% figure(2)
-% plot(results(1).results_table.full_time, results(1).results_table.full_data)
-% hold on
-% scatter(full_time(locs),full_data(locs),'g')
-% plot([0 results(1).results_table.full_time(length(results(1).results_table.full_time))], [max(GMModel.mu) max(GMModel.mu)])
-% plot([0 results(1).results_table.full_time(length(results(1).results_table.full_time))], [min(GMModel.mu) min(GMModel.mu)])
-% title(['Night ' results(1).filename])
-% xlim([23430 23460])
-% xlabel('Time (in seconds)')
-% ylabel('Amplitude (in uV)')
-% legend('Full signal in bipolar', 'First mean in the GMM model', 'Second mean in the GMM model')
-% hold off
-% 
+abs_data     = abs(results(1).results_table.full_data);
+[pks, locs ] = findpeaks(abs_data);
+pks(pks>500) = [];
+GMModel      = fitgmdist(transpose(pks),2);
+
+figure(2)
+plot(results(1).results_table.full_time, abs_data)
+hold on
+scatter(results(1).results_table.full_time(locs),abs_data(locs),'g')
+plot([0 results(1).results_table.full_time(length(results(1).results_table.full_time))], [max(GMModel.mu) max(GMModel.mu)])
+plot([0 results(1).results_table.full_time(length(results(1).results_table.full_time))], [min(GMModel.mu) min(GMModel.mu)])
+title(['Night ' results(1).filename])
+xlim([23200 23800])
+xlabel('Time (in seconds)')
+ylabel('Amplitude (in uV)')
+legend('Full signal in bipolar', 'Peaks detected in the signal', 'First mean in the GMM model', 'Second mean in the GMM model')
+hold off
+
 % 
 % 
 % figure(3)
