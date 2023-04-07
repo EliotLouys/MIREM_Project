@@ -202,7 +202,7 @@ for i=1:length(candidates)-1
     % Keeping just the current data to apply our criterias.
     curr_data     = full_data(candidates(i):candidates(i+1));
     curr_iv_mask  = iv_mask(candidates(i):candidates(i+1));
-
+    
     % Applying the threshold criteria with the threshold defined earlier
     % with the GMM method.
     thresh_crit   = max( abs( curr_data ) );
@@ -217,11 +217,18 @@ for i=1:length(candidates)-1
             % Computing the slopes and applying the slope criteria: the
             % signal must have a maximum or minimum slope above 1uV/ms
             % (absolute value).
-            curr_iv_data = curr_data(curr_iv_mask==1);
-            slope_vector = diff(curr_iv_data);
+            slope_vector                    = diff(curr_data);
 
-            maxSlope     = max(slope_vector);
-            minSlope     = min(slope_vector);
+            for j=1:length(curr_iv_mask)-1
+                if  curr_data(j) > iv_thresh || curr_data(j+1) > iv_thresh
+                    slope_vector(j) = 0;
+                end
+            end
+    
+            slope_vector(slope_vector == 0) = [];
+
+            maxSlope                        = max(slope_vector);
+            minSlope                        = min(slope_vector);
 
             if maxSlope > slope_crit || abs(minSlope) > slope_crit 
 
@@ -257,9 +264,7 @@ detected_REM_table.stop_index(1)  = [];
 detected_REM_table.peak(1)        = [];
 detected_REM_table.duration(1)    = [];
 
-%TODO implanter un masque des valeurs absurdes et enlever ces valeurs
-%absurdes au moment de regarder les pentes et les threshold j'ai pas eu
-%trop le temps d'y réfléchir pour l'instant oupsi. 
+
 
 end
 
