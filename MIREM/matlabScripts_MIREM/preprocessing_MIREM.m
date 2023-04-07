@@ -37,7 +37,7 @@ paramsPrepo.highPassOrder = 4;
 paramsPrepo.lowPassFreq  = 3;
 paramsPrepo.lowPassOrder = 4;
 
-downsampling_frequency= 100;
+downsampling_frequency   = 100;
 
 %% Define main paths and folders
 % collect users' and sessions' info
@@ -142,9 +142,9 @@ data_REM       = full_data(1, find(vectorREM == 1));
 
 % A mask of incoherent values in the signal that should not be taken into
 % account for the following operations. 
-iv_thresh                     = 500;
-iv_mask                       = ones( 1, length(full_data) );
-iv_mask( iv_mask > iv_thresh) = 0;
+iv_thresh                       = 500;
+iv_mask                         = ones( 1, length(full_data) );
+iv_mask( full_data > iv_thresh) = 0;
 
 
 %%
@@ -166,7 +166,7 @@ threshold_G        = max(GMModel.mu);
 
 
 
-% defining our criterias values 
+% Defining our criterias values 
 dur_crit         = 4  ;   
 slope_crit       = 10 ;
  
